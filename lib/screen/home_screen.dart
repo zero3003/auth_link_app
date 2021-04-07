@@ -1,9 +1,12 @@
 import 'package:auth_link_app/common/provider_id.dart';
+import 'package:auth_link_app/provider/facebook_user_provider.dart';
 import 'package:auth_link_app/provider/google_user_provider.dart';
 import 'package:auth_link_app/provider/user_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -30,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Home'),
       ),
       body: Consumer<UserProvider>(builder: (context, data, _) {
+        data.providerData();
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -162,19 +166,97 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              Divider(),
+              buildInfo(label: "Link to Facebook", value: "${data.getProviderData(authProviderID: AuthProviderID.facebook)?.displayName ?? "Not Linked"}"),
+              GestureDetector(
+                onTap: () async {
+                  if (data.getProviderData(authProviderID: AuthProviderID.facebook) != null) {
+                    showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: Text('Already Linked'),
+                            content: Text('Unlink Facebook?'),
+                            actions: [
+                              ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('Kembali')),
+                              ElevatedButton(
+                                  onPressed: () async {
+                                    await data.unlinkCredential(authProviderID: AuthProviderID.facebook);
+                                    Navigator.pop(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    primary: Colors.redAccent,
+                                  ),
+                                  child: Text('Unlink')),
+                            ],
+                          );
+                        });
+                  } else {
+                    // Trigger the sign-in flow
+                    LoginResult loginResult = await FacebookAuth.instance.login();
+                    final AccessToken result = loginResult.accessToken;
+                    // Create a credential from the access token
+                    final FacebookAuthCredential facebookAuthCredential = FacebookAuthProvider.credential(result.token);
+
+                    // Once signed in, return the UserCredential
+                    await userProvider.linkCredential(authCredential: facebookAuthCredential).catchError((e) {
+                      print(e.toString());
+                    });
+                  }
+                },
+                child: Image(image: AssetImage('assets/images/facebook.png'), width: 40, color: Colors.blueAccent),
+              ),
             ],
           ),
         );
       }),
-      bottomNavigationBar: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          primary: Colors.redAccent,
-        ),
-        onPressed: () async {
-          await user.signOut();
-          await Navigator.popAndPushNamed(context, "/login");
-        },
-        child: Text("Sign out"),
+      bottomNavigationBar: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.redAccent,
+                ),
+                onPressed: () async {
+                  await user.deleteAccount();
+
+                  ///if you are sign in using another provider, don't forget to sign out that provider too.
+                  ///Using .catchError is to ensure that error will be catch here.
+                  await context.read<GoogleUserProvider>().signOut().catchError((e) {});
+                  await context.read<FacebookUserProvider>().logout().catchError((e) {});
+                  await Navigator.popAndPushNamed(context, "/login");
+                },
+                child: Text("Delete Account"),
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.redAccent,
+                ),
+                onPressed: () async {
+                  await user.signOut();
+
+                  ///if you are sign in using another provider, don't forget to sign out that provider too.
+                  ///Using .catchError is to ensure that error will be catch here.
+                  await context.read<GoogleUserProvider>().signOut().catchError((e) {});
+                  await context.read<FacebookUserProvider>().logout().catchError((e) {});
+                  await Navigator.popAndPushNamed(context, "/login");
+                },
+                child: Text("Sign out"),
+              ),
+            ),
+          )
+        ],
       ),
     );
   }

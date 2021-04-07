@@ -1,3 +1,4 @@
+import 'package:auth_link_app/provider/facebook_user_provider.dart';
 import 'package:auth_link_app/provider/google_user_provider.dart';
 import 'package:auth_link_app/provider/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,12 +36,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   UserProvider userProvider;
   GoogleUserProvider googleUserProvider;
+  FacebookUserProvider facebookUserProvider;
 
   @override
   void initState() {
     super.initState();
     userProvider = Provider.of<UserProvider>(context, listen: false);
     googleUserProvider = Provider.of<GoogleUserProvider>(context, listen: false);
+    facebookUserProvider = Provider.of<FacebookUserProvider>(context, listen: false);
     print(FirebaseAuth.instance.currentUser?.email ?? '');
   }
 
@@ -209,7 +212,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () async {
+                        try {
+                          await userProvider.signInWithOtherProvider(credential: await facebookUserProvider.login());
+                          Navigator.pushReplacementNamed(context, "/home");
+                        } catch (e) {
+                          EasyLoading.showError("${e.toString()}");
+                        }
+                      },
                       child: Image(image: AssetImage('assets/images/facebook.png'), width: 40, color: Colors.white),
                     ),
                     GestureDetector(

@@ -1,4 +1,5 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
+import 'package:auth_link_app/provider/facebook_user_provider.dart';
 import 'package:auth_link_app/provider/google_user_provider.dart';
 import 'package:auth_link_app/provider/user_provider.dart';
 import 'package:auth_link_app/screen/home_screen.dart';
@@ -27,9 +28,12 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => GoogleUserProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (context) => FacebookUserProvider(),
+        ),
       ],
       child: MaterialApp(
-        title: 'Flutter Demo',
+        title: 'Auth Link App',
         builder: EasyLoading.init(),
         theme: ThemeData(
           primarySwatch: Colors.blue,

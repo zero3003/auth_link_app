@@ -116,6 +116,10 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future deleteAccount() async {
+    await _auth.currentUser.delete();
+  }
+
   Future signOut() async {
     await _auth.signOut();
   }
